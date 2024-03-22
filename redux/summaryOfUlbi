@@ -1,0 +1,156 @@
+Redux от Ulbi
+
+
+Урок 1.
+
+Редакс - хранилище данных 
+Решает проблему: когда состояние нужно в соседнем компоненте. Ведь так ток 1 решение: поднятие стейта. А оно провоцирует сложности с прокидыапнием пропсов
+Как раьотаеи
+Есть банк. В редакс это store.
+С деньгами банка м делать разное: например, снять или положить. В редакс это actions. Но мы не модем сами просто снять деньги напрямую. Нам нужен диспетчер, который бы нам помог. В редакс это dispatch. Но и он не может просто вытащить деньги. Нужна какая-то система, к которой надо обраьтььс. В редакции это reducer. Сам диспетчер не взаимодейтсвует с деньгами, он просто идёт к компу с программой (редьюсерц). И вот режиссёр напрямую изменяет состояние
+Редакс как банк, ток вместо денег данные
+
+
+
+
+
+
+Урок 2
+
+Npm redux react-redux - установка 
+Import {createStore} front "redux" - импорт функции, чтоб создать стор 
+Const store = createStore(reducer) создание стора, но пока у нас нету reducer 
+Мб и второй параметр
+Мидлваир или дев тул
+Const reducer = (state =defaultState, action) => {
+Switch (action.type) {
+Case "ADD_CASH":
+return {...state, cash: state.cash+action.payload}
+Default:
+Return state
+} 
+Нужно возвращать по дефолту неизменный стейт
+DefaultState сам создаёшь, типо как в начале будет
+Чтобы связать редакс с реактор, надримпортнуть provider, обернуть в него App. Дать прос store ={store}
+Чтобы уже что-то делать, импортни useDispat h, в компоненте
+Const dispatch =useDispatch()
+Const cash = useSelector(state=>state.cash) 
+Функции, которые кнопка повесишь на клик создаешь
+Const add Cash =(cash)=> {
+Dispatch({type: "ADD_CASH, payload: cash}})
+} 
+Button onclick = {()=>addCash(Number(prompt()))}
+Смотри
+Мы сделали так, чтобы самим вписывать, скок хотим внестм
+AddCash(cash)
+А cash это результат вызова промт
+Единственное, в number поместили, потомучто промпт строку возвращает
+Про логику молчим, хотя и ежу понятно, что в промпт можно и буквы писать, будет NaN, а мы молчим пока об этом
+
+
+
+
+
+
+Урок 3.
+
+Что если у нас не один редьюсер?
+Нр, есть ещё один
+customerReducer
+Мы создал новую папку стор, туда поместили редьюсеры (на каждый свой файл) и индекс.js. в нем мы сделали combinereducer из редакса.
+
+Conat rootReducer = combineReducers({
+Cash: cashReducer,
+Customers: customerReducers})
+
+И уже rootReducer кидает в параметр createStore 
+По поводу customer - там работа с массивом, типичный реакт
+Будет ошибка в useSelector
+Потому что теперь путь cash поменялся
+Conat cash = useSelector(state=> state.cash.cash)
+cash.cash - cash Ресурсы и информация.
+ww1.cash.cash
+Выглядит стремно
+Тулсы
+Import {composeWithDevTools} from "redux-devtools-extention"
+И в createStore эту функцию вторым параметром, прям с вызовом
+Потом расширение в горле ищешт
+Redux dev tools
+
+
+
+
+
+
+
+
+Урок 4. Action creators и работа с массивами
+По поводу customer - там работа с массивом, типичный реакт, т.е. мы делаем спред
+Когда надо что-то удалить - filter
+Крч никаких мутаций, все, как прежде
+ 
+Надо поместить в переменную массив из стейта
+Через map итерируемсч и отрисовываем для каждого
+Чтобы добавить
+Return {...state, customers: [...state.customers, action.payload]}
+Сначала весь стейт копируем, потом меняем ток customers, все копируем из старого и добавляем нового
+Потом в функции
+Conat addCustomer =(name)=> {
+Const customer ={
+Id: Date.now,
+Name}
+Dispatch({type: 'ADD_CUSTOMERS, payload: customer})} 
+
+Name через промт
+Удалить при кликн
+Const remove Customer = (customer) => {
+Dispatch({type: "REMOVE_CUSTOMER", payload: customer.id })
+} 
+В редьюсере
+Case "REMOVE_CUSTOMER":
+Return {...state, customers: state.customers.filter(customer =>customer.id !== action.payloaf)}
+Рефакторинг: вынести в константв названия типоа
+2) можно создать action creator
+Она возвращает объект
+Const addCustomerAction = (payloaf) => ({type: addCustomers, payload}) 
+AddCustomers типа уже в константах
+
+Const addCustomerAction = (payloaf) => ({type: addCustomers, payload})
+И так для всех
+А потом уже в функциях меняешь
+Const addCustomer =(name)=>{
+Const customer ={
+Name,
+Id: Date.now()
+}
+Dispatch(addCustomerAction(customer)}
+Т.е. addCuatomer не было action?
+Хм, сомнительно, но окей. Я запуталась
+
+
+
+
+
+
+
+Урок 5.
+Асинхрон
+Thunk
+Npm I redux-thunk
+В папке стор, в index js из redux импортируешь applyMiddleware
+Const store = createStore(rootReducer composeWithDevTools(applyMiddleware(thunk))
+Я запуталась в этих параметрах у createstore
+Кто как делает
+Делаем запрос юзеров
+В редьюсере новый экшн
+Case ADD_MANY_CUSTOMERS :
+RETURN {...state, customers: [...state.customers, action.payload]}
+Потом создали action creator
+Создали папку асинхрон
+Const fetchCustomer =()=> {
+Return function (dispatch){
+Fetch(http).then(response=>response.json()).then(json=>dispatch(addManyCustomersAction(json))}} 
+Т.е. это функция, которая возвращает функцию. В последней весь асинхрон + результат в диспатч засовывают. В диспатче вызов нужного экшн криэйтера.
+Потом какой-нибудь кнопке
+OnClisk={()=>dispatch(fetchCustomers())}
+На других кнопках, где функции не ассинхронные такой обёртка в диспатч нет. Т.е. ток для асинхронной такая матрёшка. Весь редакс матрёшка. Просто бойлерплейт
