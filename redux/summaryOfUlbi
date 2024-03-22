@@ -74,7 +74,7 @@ ww1.cash.cash
 Тулсы
 Import {composeWithDevTools} from "redux-devtools-extention"
 И в createStore эту функцию вторым параметром, прям с вызовом
-Потом расширение в горле ищешт
+Потом расширение в гугле
 Redux dev tools
 
 
