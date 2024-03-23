@@ -1,0 +1,200 @@
+Минин
+Сначала написал приложение на vanilla js. Счётчик добавить, убрать, async. И кнопка для смены темы
+В KS он все получал через getElementById. Всю логику поместил в функцию рендкр. State ток выше сделал. После каждого события, вызывает рендер
+Async сделал через aetTimeout
+Логику смены темы сделал в томс же файле. Суть в том, что класс тёмной темы то добавляеьс, то убирается
+Про суть состояния: для маленьких приложений состояние прям внутри компонента ок. Для больших не ок. Моветон хранить слой представления и слой данных вместе.
+И вот редакс это штука, чтоб отделить слой данных от слоя представлений
+Вместо того, чтобы напрямую менять состояние, делаем action, c его помощью залезает в store. Через редьюсер - он меняет объект стора. Отправляет экшн - функция диспатч
+Написали свой редакс.
+Const store = createStore()
+Function createStore(){
+Return {
+Dispatch(){}
+Subscribe (){}
+GetState(){}
+}
+}
+Стор это объект
+У которого есть ряд методов
+Диспатч, сабскрайб и гетстейт
+ 
+  17:41
+Это паттерн обзервео
+Сайт рефакторинг гуру - много написано про паттерны
+ 
+  17:47
+Сделаем замыкания, локальные переменные
+
+Function createStore(rootReducer){
+Let state ={}
+Const subscribers =[]
+Return {
+Dispatch(action){
+State = RootReducer (state, action)
+Subscribers.forEach(sub=>sub())
+}
+Subscribe (callback){
+Subscribers.push(callback)
+}
+GetState() {
+Return state
+}
+}
+}
+Мне не нрав, что стейт прям меняется
+Изменил
+Function createStore(rootReducer, inotialState){
+Let state =rootReducer(initialState, {type: "init"})
+Const subscribers =[]
+Return {
+Dispatch(action){
+State = RootReducer (state, action)
+Subscribers.forEach(sub=>sub())
+}
+Subscribe (callback){
+Subscribers.push(callback)
+}
+GetState() {
+Return state
+}
+}
+} 
+ 
+
+Const store = createStore()
+Сюда нужен редьюсер
+ 
+  17:56
+Это просто функция
+Function rootReducer(state, action) {
+If(action.type=== "increment"){
+Return state+1}
+Else return state
+}
+ 
+Сюда нужен редьюсер
+CreateStore(rootRefucer, {})
+Теперь при клике пишешь
+Store.dispatch({type: "increment"})
+И чтоб это сработало
+Store.subscribe(()=>
+Const state=store.getState()
+Ну и из стейта достаешь, пихаешь в элы)
+Как тупо, что это vanilla
+Вот весь редакс
+Теперь рил редакс
+1)Создал файл с типами. И там константы, где значение просто строка 
+Чтоб не ошибиться
+2)Создал файл для actionCreators
+Functionincrement(){
+Return {
+Type: INCREMENT
+}}
+Если что инкремент уже типо коснтанта
+И теперь стало
+Store.dispatch(increment())
+Теперь про async
+Как по сне, самое сложное
+ 
+  18:12
+Function asyncIncrement(){
+Return {TYPE: ASYNCincrement}
+}
+Потом добавили этот тип экшенв а редьюсер
+Else if(action.type===async){
+Settimeout(()=>{
+Return state+1}, 2000)} 
+Это не будет работать, потому что мы нарушили перлве правило: надо возвращать стейт
+А этот ретерн относится к сеттаймаут
+Чтобы решить эту проблему придумали мидлвэар
+У Димыча смотрела ещё. Он говорил, что это штука, которая между 2 вещами. Точно не помню уже
+Npm I redux-thunk 
+Импортируем thunk
+Const store = createStore(rootRefucer, applyMiddleware(thunk))
+ApplyMiddleware просто из redux импортируеься
+И теперь меняем
+ 
+
+Function asyncIncrement(){ Return {TYPE: ASYNCincrement} }
+Вот это
+На это
+Function asyncIncrement(){
+Эта функция нужна, чтобы просто передать ниже диспатч, т.е. чтоб можно было его когда надо вызывать
+Return function(dispatch){
+Settimeout(()=>{
+Dispatch ({type: asyncIncrement})
+}, 2000)
+
+}
+} 
+После этого
+Идём в редьюсер
+ 
+Else if(action.type===async){ Settimeout(()=>{ Return state+1}, 2000)}
+Меняем это
+Else if(action.type===async){
+Return state+1}
+Т.к делает то, же что обычный инкремент, мы убрали одно название, просто на инкремент заменили в диспатче в экшен криэйторе
+ 
+  18:28
+Делаем свой мидлваре
+Который называется logger
+Function logger(state){
+Return function(next){
+Return function(action){
+Console.log(state, action)
+Return next(action)
+}}} 
+ 
+  18:37
+В консоль до изменения щас
+Но суть в том, что уже есть готовые логеры
+Redux logger
+ApplyMiddleware(thunk, logger)
+Смена темы - это ещё один редьюсер
+Потом их combineReducers
+В один
+Const RootReducer = combineReducer({
+Conunter: counterReducer(),
+Theme: themeReducer})
+Но теперь нужно state не просто равный числу
+Теперь мы удалили начальное состояниеи начали задавать state по дефолту в самих р5дьюсерах
+ThemeReducer(state=initialTheme, action)... 
+ 
+  18:42
+CounterReducer(state=0, action)
+А потом просто, где надо вытаскивает по нужному пути
+State.counter
+State.theme
+Говорит, свитч лучше чем иф
+Ну оно понятно
+Говорит про иммутабельностт
+InitialTheme это объект
+И ток для него почему-то сделал иммутабельность, для counterReducer оставил как есть
+Return {...state, value: "dark"} 
+Не получилось у него четко
+Сделал тернарный оператор - если есть тёмная тема, надо поменять на светлую и наоборот
+Рассказал про payload
+Как по мне бред
+Можно через true false смену сделатт
+Сделал логику для дизэйбла кнопок, пока работает асинк
+Не совсем поняла, как понять, когда асинк уже все
+Ничего не понятно. Лучше бы на реакт показал
+Т.е. понятно, но не понятно, как в реакте будет
+ 
+  19:13
+Девтулс
+Берём из редакс функцию компоуз
+Вторым параметром в createstore передаём compose
+В неё уже фигачим applyMiddleware и строку из документации дев тулс
+Это делает девутл расширение подсвеченным, раблчим
+Ну или можно просто установить как библиотеку, а потом поменять в createStore.
+Root,reducer,
+ComposeWithDevTools(
+ApllyMiddleware(thunk, logger))
+Как мне надоели эти перетусовывания
+Ещё со времен пропсов в реакте
+Чуть передвинул компонент, все, все меняй. Вроде редакс должен был упростить. Но сам по себе он - 200 действий на минимальное приложение
+Уже раздражает
+Мб mobx понравится мне больше
