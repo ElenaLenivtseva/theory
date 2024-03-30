@@ -1,0 +1,97 @@
+Redux Fundamentals, Part 4: Store
+Стор ток 1
+Holds the current application state inside
+Allows access to the current state via store.getState();
+Allows state to be updated via store.dispatch(action);
+Registers listener callbacks via store.subscribe(listener);
+Handles unregistering of listeners via the unsubscribe function returned by store.subscribe(listener).
+Создать
+import { createStore } from 'redux'
+import rootReducer from './reducer'
+
+const store = createStore(rootReducer)
+
+export default store
+Моздпть с нач знач
+import { createStore } from 'redux'
+import rootReducer from './reducer'
+
+let preloadedState
+const persistedTodosString = localStorage.getItem('todos')
+
+if (persistedTodosString) {
+preloadedState = {
+todos: JSON.parse(persistedTodosString)
+}
+}
+
+const store = createStore(rootReducer, preloadedState)
+Диспатчить
+const unsubscribe = store.subscribe(() =>
+console.log('State after dispatch: ', store.getState())
+)
+store.dispatch({ type: 'todos/todoAdded', payload: 'Learn about actions' })
+Что происходит при каждом диспатче
+Remember, every time we call store.dispatch(action):
+
+The store calls rootReducer(state, action)
+That root reducer may call other slice reducers inside of itself, like todosReducer(state.todos, action)
+The store saves the new state value inside
+The store calls all the listener subscription callbacks
+If a listener has access to the store, it can now call store.getState() to read the latest state value
+If we look at the console log output
+Creating a Store with Enhancers
+Что-то про улучшения конфигурации тут было, не поняла пока
+
+Enhancers are powerful because they can override or replace any of the store's methods: dispatch, getState, and subscribe. 
+Типо что-то показалось в консоли. Зачем если есть dev tools. Не пон
+Middleware
+Птицу с письмом поймали. Доставка письма задержалась. Диспатч перехватили, что-то сделали с экшен. Снова отправили письмо. Крч доп шаг между.
+import { createStore, applyMiddleware } from 'redux'
+import rootReducer from './reducer'
+import { print1, print2, print3 } from './exampleAddons/middleware'
+
+const middlewareEnhancer = applyMiddleware(print1, print2, print3)
+
+// Pass enhancer as the second arg, since there's no preloadedState
+const store = createStore(rootReducer, middlewareEnhancer)
+
+export default store
+ApplyMiddleware и все дела
+Мб и кастомные мидлваре, мне пока рано, мне кажется
+Dev tools
+
+import { createStore, applyMiddleware } from 'redux'
+import { composeWithDevTools } from 'redux-devtools-extension'
+import rootReducer from './reducer'
+import { print1, print2, print3 } from './exampleAddons/middleware'
+
+const composedEnhancer = composeWithDevTools(
+// EXAMPLE: Add whatever middleware you actually want to use here
+applyMiddleware(print1, print2, print3)
+// other store enhancers if any
+)
+
+const store = createStore(rootReducer, composedEnhancer)
+export default store
+SUMMARY
+Redux apps always have a single store
+Stores are created with the Redux createStore API
+Every store has a single root reducer function
+Stores have three main methods
+getState returns the current state
+dispatch sends an action to the reducer to update the state
+subscribe takes a listener callback that runs each time an action is dispatched
+Store enhancers let us customize the store when it's created
+Enhancers wrap the store and can override its methods
+createStore accepts one enhancer as an argument
+Multiple enhancers can be merged together using the compose API
+Middleware are the main way to customize the store
+Middleware are added using the applyMiddleware enhancer
+Middleware are written as three nested functions inside each other
+Middleware run each time an action is dispatched
+Middleware can have side effects inside
+The Redux DevTools let you see what's changed in your app over time
+The DevTools Extension can be installed in your browser
+The store needs the DevTools enhancer added, using composeWithDevTools
+The DevTools show dispatched actions and changes in state over time

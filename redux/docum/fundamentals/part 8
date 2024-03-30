@@ -1,0 +1,231 @@
+Redux Fundamentals, Part 8: Modern Redux with Redux Toolkit
+Надо юзать rtk. Там есть все, что мы изучали уже автоматом
+Redux Toolkit only covers the Redux logic - we still use React-Redux to let our React components talk to the Redux store, including useSelector and useDispatch.
+npm install @reduxjs/toolkit
+Стор теперь создаётся так
+import { configureStore } from '@reduxjs/toolkit'
+
+import todosReducer from './features/todos/todosSlice'
+import filtersReducer from './features/filters/filtersSlice'
+
+const store = configureStore({
+reducer: {
+// Define a top-level state field named `todos`, handled by `todosReducer`
+todos: todosReducer,
+filters: filtersReducer
+}
+})
+
+export default store
+Эта одна штука делает кучу работы
+It combined todosReducer and filtersReducer into the root reducer function, which will handle a root state that looks like {todos, filters}
+It created a Redux store using that root reducer
+It automatically added the thunk middleware
+It automatically added more middleware to check for common mistakes like accidentally mutating the state
+It automatically set up the Redux DevTools Extension connection
+И ошибки в консоль выводит
+Уборка
+npm uninstall redux redux-thunk reselect
+Они уже есть в ртк. Ну то есть требование зависимости
+Writing Slices
+Redux Toolkit has a createSlice API that will help us simplify our Redux reducer logic and actions. createSlice does several important things for us:
+
+We can write the case reducers as functions inside of an object, instead of having to write a switch/case statement
+The reducers will be able to write shorter immutable update logic
+All the action creators will be generated automatically based on the reducer functions we've provided
+Using createSlice
+createSlice takes an object with three main options fields:
+
+name: a string that will be used as the prefix for generated action types
+initialState: the initial state of the reducer
+reducers: an object where the keys are strings, and the values are "case reducer" functions that will handle specific actions
+Let's look at a small standalone example first.
+
+createSlice example
+import { createSlice } from '@reduxjs/toolkit'
+
+const initialState = {
+entities: [],
+status: null
+}
+
+const todosSlice = createSlice({
+name: 'todos',
+initialState,
+reducers: {
+todoAdded(state, action) {
+// ✅ This "mutating" code is okay inside of createSlice!
+state.entities.push(action.payload)
+},
+todoToggled(state, action) {
+const todo = state.entities.find(todo => todo.id === action.payload)
+todo.completed = !todo.completed
+},
+todosLoading(state, action) {
+return {
+...state,
+status: 'loading'
+}
+}
+}
+})
+
+export const { todoAdded, todoToggled, todosLoading } = todosSlice.actions
+
+export default todosSlice.reducer
+todo.id - todo Ресурсы и информация.
+www.todo.id
+There's several things to see in this example:
+
+We write case reducer functions inside the reducers object, and give them readable names
+createSlice will automatically generate action creators that correspond to each case reducer function we provide
+createSlice automatically returns the existing state in the default case
+createSlice allows us to safely "mutate" our state!
+But, we can also make immutable copies like before if we want to
+Immutable Updates with Immer
+Секрет раскрыли. Инфа не нова. Я читала документацию по React. Крч rtk юзает immer, мутируй на здоровье
+Но не везде!
+You can only write "mutating" logic in Redux Toolkit's createSlice and createReducer because they use Immer inside! If you write mutating logic in reducers without Immer, it will mutate the state and cause bugs!
+Writing Thunks
+Because this pattern is so common, Redux Toolkit has a createAsyncThunk API that will generate these thunks for us. It also generates the action types and action creators for those different request status actions, and dispatches those actions automatically based on the resulting Promise
+Ещё есть rtk query. Рекомендуют
+createAsyncThunk accepts two arguments:
+
+A string that will be used as the prefix for the generated action types
+A "payload creator" callback function that should return a Promise. This is often written using the async/await syntax, since async functions automatically return a promise.
+Не совсем разобралась тут
+Normalizing State
+Redux Toolkit includes a createEntityAdapter API that has prebuilt reducers for typical data update operations with normalized state. This includes adding, updating, and removing items from a slice. createEntityAdapter also generates some memoized selectors for reading values from the store
+Calling createEntityAdapter gives us an "adapter" object that contains several premade reducer functions, including:
+
+addOne / addMany: add new items to the state
+upsertOne / upsertMany: add new items or update existing ones
+updateOne / updateMany: update existing items by supplying partial values
+removeOne / removeMany: remove items based on IDs
+setAll: replace all existing items
+The adapter also contains:
+
+getInitialState: returns an object that looks like { ids: [], entities: {} }, for storing a normalized state of items along with an array of all item IDs
+getSelectors: generates a standard set of selector functions
+С нормализации сложно
+SUMMARY
+Redux Toolkit (RTK) is the standard way to write Redux logic
+RTK includes APIs that simplify most Redux code
+RTK wraps around the Redux core, and includes other useful packages
+configureStore sets up a Redux store with good defaults
+Automatically combines slice reducers to create the root reducer
+Automatically sets up the Redux DevTools Extension and debugging middleware
+createSlice simplifies writing Redux actions and reducers
+Automatically generates action creators based on slice/reducer names
+Reducers can "mutate" state inside createSlice using Immer
+createAsyncThunk generates thunks for async calls
+Automatically generates a thunk + pending/fulfilled/rejected action creators
+Dispatching the thunk runs your payload creator and dispatches the actions
+Thunk actions can be handled in createSlice.extraReducers
+createEntityAdapter provides reducers + selectors for normalized state
+Includes reducer functions for common tasks like adding/updating/removing items
+Generates memoized selectors for selectAll and selectById
+Redux Fundamentals, Part 3: State, Actions, and Reducers
+Просто куча фигни.
+Я уже перечитала весь fundamentals 2-3 раза. Но это треш. То, как они работают с практикой, ужасно, на мой взгляд. Человек выбрал fundamentals. From bottom to up. Вы делаете такое. Кринж 
+Редьюсер
+Пример
+function nextTodoId(todos) {
+const maxId = todos.reduce((maxId, todo) => Math.max(todo.id, maxId), -1)
+return maxId + 1
+}
+
+// Use the initialState as a default value
+export default function appReducer(state = initialState, action) {
+// The reducer normally looks at the action type field to decide what happens
+switch (action.type) {
+// Do something here based on the different types of actions
+case 'todos/todoAdded': {
+// We need to return a new state object
+return {
+// that has all the existing state data
+...state,
+// but has a new array for the `todos` field
+todos: [
+// with all of the old todos
+...state.todos,
+// and the new todo object
+{
+// Use an auto-incrementing numeric ID for this example
+id: nextTodoId(state.todos),
+text: action.payload,
+completed: false
+}
+]
+}
+}
+default:
+// If this reducer doesn't recognize the action type, or doesn't
+// care about this specific action, return the existing state unchanged
+return state
+}
+}
+todo.id - todo Ресурсы и информация.
+www.todo.id
+Rules of Reducers
+We said earlier that reducers must always follow some special rules:
+
+They should only calculate the new state value based on the state and action arguments
+They are not allowed to modify the existing state. Instead, they must make immutable updates, by copying the existing state and making changes to the copied values.
+They must not do any asynchronous logic or other "side effects"
+TIP
+A "side effect" is any change to state or behavior that can be seen outside of returning a value from a function. Some common kinds of side effects are things like:
+
+Logging a value to the console
+Saving a file
+Setting an async timer
+Making an AJAX HTTP request
+Modifying some state that exists outside of a function, or mutating arguments to a function
+Generating random numbers or unique random IDs (such as Math.random() or Date.now())
+Any function that follows these rules is also known as a "pure" function, even if it's not specifically written as a reducer function.
+Но хорошо,что объясняют, почему это важно
+Предсказцемость, ререндер, девтулсы
+Reducers can only make copies of the original values, and then they can mutate the copies.
+
+// ✅ This is safe, because we made a copy
+return {
+...state,
+value: 123
+}
+Splitting Reducers
+As part of this, Redux reducers are typically split apart based on the section of the Redux state that they update.
+the reducer for a specific section of the Redux app state is called a "slice reducer".
+Когда редьюсеров несколько, скомбинируй в один
+import { combineReducers } from 'redux'
+
+import todosReducer from './features/todos/todosSlice'
+import filtersReducer from './features/filters/filtersSlice'
+
+const rootReducer = combineReducers({
+// Define a top-level state field named `todos`, handled by `todosReducer`
+todos: todosReducer,
+filters: filtersReducer
+})
+
+export default rootReducer
+SUMMARY
+Redux apps use plain JS objects, arrays, and primitives as the state values
+The root state value should be a plain JS object
+The state should contain the smallest amount of data needed to make the app work
+Classes, Promises, functions, and other non-plain values should not go in the Redux state
+Reducers must not create random values like Math.random() or Date.now()
+It's okay to have other state values that are not in the Redux store (like local component state) side-by side with Redux
+Actions are plain objects with a type field that describe what happened
+The type field should be a readable string, and is usually written as 'feature/eventName'
+Actions may contain other values, which are typically stored in the action.payload field
+Actions should have the smallest amount of data needed to describe what happened
+Reducers are functions that look like (state, action) => newState
+Reducers must always follow special rules:
+Only calculate the new state based on the state and action arguments
+Never mutate the existing state - always return a copy
+No "side effects" like AJAX calls or async logic
+Reducers should be split up to make them easier to read
+Reducers are usually split based on top-level state keys or "slices" of state
+Reducers are usually written in "slice" files, organized into "feature" folders
+Reducers can be combined together with the Redux combineReducers function
+The key names given to combineReducers define the top-level state object keys

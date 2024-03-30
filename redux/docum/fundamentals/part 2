@@ -1,0 +1,89 @@
+Redux Fundamentals, Part 2: Concepts and Data Flow
+В этой главе много про react. Не хочу повторяться
+Actions
+An action is a plain JavaScript object that has a type field. You can think of an action as an event that describes something that happened in the application.
+Если кратко - они просят считать action за event
+Reducer - за event handler
+А диспатч, вроде как, за триггер
+const addTodoAction = {
+type: 'todos/todoAdded',
+payload: 'Buy milk'
+}
+Reducers
+A reducer is a function that receives the current state and an action object, decides how to update the state if necessary, and returns the new state: (state, action) => newState. You can think of a reducer as an event listener which handles events based on the received action (event) type.
+О чем я и говорю
++ редьюср чистая функция
+Логика редьюсера
+- что ты говоришь, экшн, произошло?
+- а, ну это я знаю. Щас сделаю, что надо. Да, стейт скопирую, внесу в копию изменения, верну копию, как текущий стейт. Как обычно.
+2 вариант
+- Что произошло? Ах, это. Да мне пофиг. Ничего делать не буду, верну state как есть и все
+Store
+import { configureStore } from '@reduxjs/toolkit'
+
+const store = configureStore({ reducer: counterReducer })
+
+console.log(store.getState())
+// {value: 0}
+Презираю редакс за его документацию. На тебе кусок из rtk
+Не ожидал? А на тебе
+Dispatch
+The only way to update the state. Звучит грустно
+Но,как есть
+store.dispatch({ type: 'counter/incremented' })
+
+console.log(store.getState())
+// {value: 1}
+You can think of dispatching actions as "triggering an event" in the application
+Уже говорила об этом
+Selectors
+Спасибо большое, что упомянули и помянули. Мы забудем про selectors на бог знает, сколько времени
+Selectors are functions that know how to extract specific pieces of information from a store state value. As an application grows bigger, this can help avoid repeating logic as different parts of the app need to read the same data:
+
+const selectCounterValue = state => state.value
+
+const currentValue = selectCounterValue(store.getState())
+console.log(currentValue)
+// 2
+Второе предложение бессмысленное вообще
+Все в программировании стремится к dry
+Это аксиома
+В чем здесь показали суть?
+Если расшифровать - благодаря этой штуке, мы помещает в переменную нужную часть стейта. Нужно тебе имя юзера? Пожалуйста.
+Или я не так это поняла
+Core Concepts and Principles
+1. Один источник истины.
+Истина - холодильник-store. Он диктует нам, как жить, как выглядеть ui и пр. Если у ui что-то произошло, ui всегда смотрит на стор, который мы правда меняем с помощью редьюсера, но всегда ui смотрит на стор
+Единственный прикол - редакс говорит, что не все дБ в сторе. Но как де так? А как же истина?
+State is Read-Only
+Делай копии, меняй копии, возвращай копии, как новенький стейт, живи счастливо
+Changes are Made with Pure Reducer Functions
+Ну не должен твой редьюсер запускать таймер, плевать ему на твой сервак и все запросы к нему, менять какие-то штуки, которые уже существовали preexisting. Одинаковые входные- одинаковый выход. Чистая функция
+Весь в белом, хотя по сути его рукми творится грязная работа
+Redux Application Data Flow
+Редакс решил подушнить. Очень подробные шаги
+Initial setup:
+A Redux store is created using a root reducer function
+The store calls the root reducer once, and saves the return value as its initial state
+When the UI is first rendered, UI components access the current state of the Redux store, and use that data to decide what to render. They also subscribe to any future store updates so they can know if the state has changed.
+Updates:
+Something happens in the app, such as a user clicking a button
+The app code dispatches an action to the Redux store, like dispatch({type: 'counter/incremented'})
+The store runs the reducer function again with the previous state and the current action, and saves the return value as the new state
+The store notifies all parts of the UI that are subscribed that the store has been updated
+Each UI component that needs data from the store checks to see if the parts of the state they need have changed.
+Each component that sees its data has changed forces a re-render with the new data, so it can update what's shown on the screen
+Но на самом деле такое объяснение мне нравится ,молодцы
+Единственное, мне непонятно, зачем они потом будут говорить про обязательный кэш, мол, иначе постоянно ест память, если тут написано, что каждый компонент считывает ток нужные ему части стейта на изменение состояния
+SUMMARY
+Redux's intent can be summarized in three principles
+Global app state is kept in a single store
+The store state is read-only to the rest of the app
+Reducer functions are used to update the state in response to actions
+Redux uses a "one-way data flow" app structure
+State describes the condition of the app at a point in time, and UI renders based on that state
+When something happens in the app:
+The UI dispatches an action
+The store runs the reducers, and the state is updated based on what occurred
+The store notifies the UI that the state has changed
+The UI re-renders based on the new state
